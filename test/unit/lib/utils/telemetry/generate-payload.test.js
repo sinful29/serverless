@@ -1,46 +1,45 @@
-'use strict';
+'use strict'
 
-const { expect } = require('chai');
-const path = require('path');
-const fsp = require('fs').promises;
-const os = require('os');
-const overrideEnv = require('process-utils/override-env');
-const proxyquire = require('proxyquire');
+const { expect } = require('chai')
+const path = require('path')
+const fsp = require('fs').promises
+const os = require('os')
+const overrideEnv = require('process-utils/override-env')
+const proxyquire = require('proxyquire')
 
-const commandsSchema = require('../../../../../lib/cli/commands-schema');
-const runServerless = require('../../../../utils/run-serverless');
-const fixtures = require('../../../../fixtures/programmatic');
+const commandsSchema = require('../../../../../lib/cli/commands-schema')
+const runServerless = require('../../../../utils/run-serverless')
+const fixtures = require('../../../../fixtures/programmatic')
 
 const versions = {
-  'serverless': require('../../../../../package').version,
-  '@serverless/dashboard-plugin': require('@serverless/dashboard-plugin/package').version,
-};
+  serverless: require('../../../../../package').version,
+}
 
 const getGeneratePayload = () =>
   proxyquire('../../../../../lib/utils/telemetry/generate-payload', {
     '@serverless/utils/get-notifications-mode': () => 'on',
-  });
+  })
 
 describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
-  let isTTYCache;
-  let originalModulesCache;
+  let isTTYCache
+  let originalModulesCache
   before(() => {
     // In order for tests below to return `commandDurationMs`
-    EvalError.$serverlessCommandStartTime = process.hrtime();
-    isTTYCache = process.stdin.isTTY;
-    process.stdin.isTTY = true;
-    originalModulesCache = Object.assign({}, require.cache);
-  });
+    EvalError.$serverlessCommandStartTime = process.hrtime()
+    isTTYCache = process.stdin.isTTY
+    process.stdin.isTTY = true
+    originalModulesCache = Object.assign({}, require.cache)
+  })
 
   after(() => {
-    process.stdin.isTTY = isTTYCache;
-    for (const key of Object.keys(require.cache)) delete require.cache[key];
-    Object.assign(require.cache, originalModulesCache);
-  });
+    process.stdin.isTTY = isTTYCache
+    for (const key of Object.keys(require.cache)) delete require.cache[key]
+    Object.assign(require.cache, originalModulesCache)
+  })
 
   beforeEach(() => {
-    for (const key of Object.keys(require.cache)) delete require.cache[key];
-  });
+    for (const key of Object.keys(require.cache)) delete require.cache[key]
+  })
 
   it('Should resolve payload for AWS service', async () => {
     const { servicePath: serviceDir } = await fixtures.setup('http-api', {
@@ -88,7 +87,7 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
           },
         },
       },
-    });
+    })
     await fsp.writeFile(
       path.resolve(serviceDir, 'package.json'),
       JSON.stringify({
@@ -104,37 +103,35 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
           someDev: '1',
           otherDev: '1',
         },
-      })
-    );
+      }),
+    )
 
     const { serverless } = await runServerless({
       cwd: serviceDir,
       command: 'print',
-    });
+    })
     const payload = getGeneratePayload()({
       command: 'print',
       options: {},
       commandSchema: commandsSchema.get('print'),
       serviceDir,
       configuration: serverless.configurationInput,
-    });
+    })
 
-    expect(payload).to.have.property('frameworkLocalUserId');
-    delete payload.frameworkLocalUserId;
-    expect(payload).to.have.property('firstLocalInstallationTimestamp');
-    delete payload.firstLocalInstallationTimestamp;
-    expect(payload).to.have.property('timestamp');
-    delete payload.timestamp;
-    expect(payload).to.have.property('dashboard');
-    delete payload.dashboard;
-    expect(payload).to.have.property('timezone');
-    delete payload.timezone;
-    expect(payload).to.have.property('ciName');
-    delete payload.ciName;
-    expect(payload).to.have.property('commandDurationMs');
-    delete payload.commandDurationMs;
-    expect(payload).to.have.property('isTtyTerminal');
-    delete payload.isTtyTerminal;
+    expect(payload).to.have.property('frameworkLocalUserId')
+    delete payload.frameworkLocalUserId
+    expect(payload).to.have.property('firstLocalInstallationTimestamp')
+    delete payload.firstLocalInstallationTimestamp
+    expect(payload).to.have.property('timestamp')
+    delete payload.timestamp
+    expect(payload).to.have.property('timezone')
+    delete payload.timezone
+    expect(payload).to.have.property('ciName')
+    delete payload.ciName
+    expect(payload).to.have.property('commandDurationMs')
+    delete payload.commandDurationMs
+    expect(payload).to.have.property('isTtyTerminal')
+    delete payload.isTtyTerminal
     expect(payload).to.deep.equal({
       cliName: 'serverless',
       command: 'print',
@@ -150,7 +147,11 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
         },
         plugins: [],
         functions: [
-          { runtime: 'nodejs14.x', events: [{ type: 'httpApi' }, { type: 'httpApi' }], url: false },
+          {
+            runtime: 'nodejs14.x',
+            events: [{ type: 'httpApi' }, { type: 'httpApi' }],
+            url: false,
+          },
           { runtime: 'nodejs14.x', events: [{ type: 'httpApi' }], url: false },
           { runtime: 'nodejs14.x', events: [], url: false },
           { runtime: 'nodejs14.x', events: [], url: false },
@@ -173,14 +174,14 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
       installationType: 'global:other',
       hasLocalCredentials: false,
       versions,
-    });
-  });
+    })
+  })
 
   it('Should resolve payload for custom provider service', async () => {
     const { serverless } = await runServerless({
       fixture: 'custom-provider',
       command: 'print',
-    });
+    })
     const payload = getGeneratePayload()({
       command: 'print',
       options: {},
@@ -188,24 +189,22 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
       serviceDir: serverless.serviceDir,
       configuration: serverless.configurationInput,
       serverless,
-    });
+    })
 
-    expect(payload).to.have.property('frameworkLocalUserId');
-    delete payload.frameworkLocalUserId;
-    expect(payload).to.have.property('firstLocalInstallationTimestamp');
-    delete payload.firstLocalInstallationTimestamp;
-    expect(payload).to.have.property('timestamp');
-    delete payload.timestamp;
-    expect(payload).to.have.property('dashboard');
-    delete payload.dashboard;
-    expect(payload).to.have.property('timezone');
-    delete payload.timezone;
-    expect(payload).to.have.property('ciName');
-    delete payload.ciName;
-    expect(payload).to.have.property('commandDurationMs');
-    delete payload.commandDurationMs;
-    expect(payload).to.have.property('isTtyTerminal');
-    delete payload.isTtyTerminal;
+    expect(payload).to.have.property('frameworkLocalUserId')
+    delete payload.frameworkLocalUserId
+    expect(payload).to.have.property('firstLocalInstallationTimestamp')
+    delete payload.firstLocalInstallationTimestamp
+    expect(payload).to.have.property('timestamp')
+    delete payload.timestamp
+    expect(payload).to.have.property('timezone')
+    delete payload.timezone
+    expect(payload).to.have.property('ciName')
+    delete payload.ciName
+    expect(payload).to.have.property('commandDurationMs')
+    delete payload.commandDurationMs
+    expect(payload).to.have.property('isTtyTerminal')
+    delete payload.isTtyTerminal
     expect(payload).to.deep.equal({
       cliName: 'serverless',
       command: 'print',
@@ -238,8 +237,8 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
       hasLocalCredentials: false,
       installationType: 'global:other',
       versions,
-    });
-  });
+    })
+  })
 
   it('Should resolve service-agnostic payload', async () => {
     const payload = getGeneratePayload()({
@@ -248,24 +247,22 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
       commandSchema: commandsSchema.get('config'),
       serviceDir: process.cwd(),
       configuration: { service: 'foo', provider: 'aws' },
-    });
+    })
 
-    expect(payload).to.have.property('frameworkLocalUserId');
-    delete payload.frameworkLocalUserId;
-    expect(payload).to.have.property('firstLocalInstallationTimestamp');
-    delete payload.firstLocalInstallationTimestamp;
-    expect(payload).to.have.property('timestamp');
-    delete payload.timestamp;
-    expect(payload).to.have.property('dashboard');
-    delete payload.dashboard;
-    expect(payload).to.have.property('timezone');
-    delete payload.timezone;
-    expect(payload).to.have.property('ciName');
-    delete payload.ciName;
-    expect(payload).to.have.property('commandDurationMs');
-    delete payload.commandDurationMs;
-    expect(payload).to.have.property('isTtyTerminal');
-    delete payload.isTtyTerminal;
+    expect(payload).to.have.property('frameworkLocalUserId')
+    delete payload.frameworkLocalUserId
+    expect(payload).to.have.property('firstLocalInstallationTimestamp')
+    delete payload.firstLocalInstallationTimestamp
+    expect(payload).to.have.property('timestamp')
+    delete payload.timestamp
+    expect(payload).to.have.property('timezone')
+    delete payload.timezone
+    expect(payload).to.have.property('ciName')
+    delete payload.ciName
+    expect(payload).to.have.property('commandDurationMs')
+    delete payload.commandDurationMs
+    expect(payload).to.have.property('isTtyTerminal')
+    delete payload.isTtyTerminal
     expect(payload).to.deep.equal({
       cliName: 'serverless',
       command: 'config',
@@ -278,8 +275,8 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
       triggeredDeprecations: [],
       installationType: 'global:other',
       versions,
-    });
-  });
+    })
+  })
 
   it('Should resolve service-agnostic payload for command with `serviceDependencyMode: "optional"`', () => {
     const payload = getGeneratePayload()({
@@ -288,24 +285,22 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
       commandSchema: commandsSchema.get(''),
       serviceDir: process.cwd(),
       configuration: { service: 'foo', provider: 'aws' },
-    });
+    })
 
-    expect(payload).to.have.property('frameworkLocalUserId');
-    delete payload.frameworkLocalUserId;
-    expect(payload).to.have.property('firstLocalInstallationTimestamp');
-    delete payload.firstLocalInstallationTimestamp;
-    expect(payload).to.have.property('timestamp');
-    delete payload.timestamp;
-    expect(payload).to.have.property('dashboard');
-    delete payload.dashboard;
-    expect(payload).to.have.property('timezone');
-    delete payload.timezone;
-    expect(payload).to.have.property('ciName');
-    delete payload.ciName;
-    expect(payload).to.have.property('commandDurationMs');
-    delete payload.commandDurationMs;
-    expect(payload).to.have.property('isTtyTerminal');
-    delete payload.isTtyTerminal;
+    expect(payload).to.have.property('frameworkLocalUserId')
+    delete payload.frameworkLocalUserId
+    expect(payload).to.have.property('firstLocalInstallationTimestamp')
+    delete payload.firstLocalInstallationTimestamp
+    expect(payload).to.have.property('timestamp')
+    delete payload.timestamp
+    expect(payload).to.have.property('timezone')
+    delete payload.timezone
+    expect(payload).to.have.property('ciName')
+    delete payload.ciName
+    expect(payload).to.have.property('commandDurationMs')
+    delete payload.commandDurationMs
+    expect(payload).to.have.property('isTtyTerminal')
+    delete payload.isTtyTerminal
     expect(payload).to.deep.equal({
       command: '',
       commandOptionNames: [],
@@ -335,32 +330,30 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
       npmDependencies: [],
       hasLocalCredentials: false,
       versions,
-    });
-  });
+    })
+  })
 
   it('Should correctly resolve payload with missing service configuration', () => {
     const payload = getGeneratePayload()({
       command: 'plugin list',
       options: {},
       commandSchema: commandsSchema.get('plugin list'),
-    });
+    })
 
-    expect(payload).to.have.property('frameworkLocalUserId');
-    delete payload.frameworkLocalUserId;
-    expect(payload).to.have.property('firstLocalInstallationTimestamp');
-    delete payload.firstLocalInstallationTimestamp;
-    expect(payload).to.have.property('timestamp');
-    delete payload.timestamp;
-    expect(payload).to.have.property('dashboard');
-    delete payload.dashboard;
-    expect(payload).to.have.property('timezone');
-    delete payload.timezone;
-    expect(payload).to.have.property('ciName');
-    delete payload.ciName;
-    expect(payload).to.have.property('commandDurationMs');
-    delete payload.commandDurationMs;
-    expect(payload).to.have.property('isTtyTerminal');
-    delete payload.isTtyTerminal;
+    expect(payload).to.have.property('frameworkLocalUserId')
+    delete payload.frameworkLocalUserId
+    expect(payload).to.have.property('firstLocalInstallationTimestamp')
+    delete payload.firstLocalInstallationTimestamp
+    expect(payload).to.have.property('timestamp')
+    delete payload.timestamp
+    expect(payload).to.have.property('timezone')
+    delete payload.timezone
+    expect(payload).to.have.property('ciName')
+    delete payload.ciName
+    expect(payload).to.have.property('commandDurationMs')
+    delete payload.commandDurationMs
+    expect(payload).to.have.property('isTtyTerminal')
+    delete payload.isTtyTerminal
     expect(payload).to.deep.equal({
       cliName: 'serverless',
       command: 'plugin list',
@@ -373,8 +366,8 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
       triggeredDeprecations: [],
       installationType: 'global:other',
       versions,
-    });
-  });
+    })
+  })
 
   it('Should resolve payload with predefined local config', async () => {
     await fsp.writeFile(
@@ -385,8 +378,8 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
         meta: {
           created_at: 1616151998,
         },
-      })
-    );
+      }),
+    )
 
     const payload = getGeneratePayload()({
       command: 'config',
@@ -394,11 +387,10 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
       commandSchema: commandsSchema.get('config'),
       serviceDir: process.cwd(),
       configuration: { service: 'foo', provider: 'aws' },
-    });
-    expect(payload.dashboard.userId).to.equal('some-user-id');
-    expect(payload.frameworkLocalUserId).to.equal('123');
-    expect(payload.firstLocalInstallationTimestamp).to.equal(1616151998);
-  });
+    })
+    expect(payload.frameworkLocalUserId).to.equal('123')
+    expect(payload.firstLocalInstallationTimestamp).to.equal(1616151998)
+  })
 
   it('Should not include userId from local config if SERVERLESS_ACCESS_KEY used', async () => {
     await fsp.writeFile(
@@ -406,10 +398,10 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
       JSON.stringify({
         frameworkId: '123',
         userId: 'some-user-id',
-      })
-    );
+      }),
+    )
 
-    let payload;
+    let payload
 
     overrideEnv({ variables: { SERVERLESS_ACCESS_KEY: 'some-key' } }, () => {
       payload = getGeneratePayload()({
@@ -418,14 +410,13 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
         commandSchema: commandsSchema.get('config'),
         serviceDir: process.cwd(),
         configuration: { service: 'foo', provider: 'aws' },
-      });
-    });
-    expect(payload.dashboard.userId).to.be.null;
-    expect(payload.frameworkLocalUserId).to.equal('123');
-  });
+      })
+    })
+    expect(payload.frameworkLocalUserId).to.equal('123')
+  })
 
   it('Should correctly detect Serverless CI/CD', () => {
-    let payload;
+    let payload
 
     overrideEnv({ variables: { SERVERLESS_CI_CD: 'true' } }, () => {
       payload = getGeneratePayload()({
@@ -434,13 +425,13 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
         commandSchema: commandsSchema.get('config'),
         serviceDir: process.cwd(),
         configuration: { service: 'foo', provider: 'aws' },
-      });
-    });
-    expect(payload.ciName).to.equal('Serverless CI/CD');
-  });
+      })
+    })
+    expect(payload.ciName).to.equal('Serverless CI/CD')
+  })
 
   it('Should correctly detect Seed CI/CD', () => {
-    let payload;
+    let payload
 
     overrideEnv({ variables: { SEED_APP_NAME: 'some-app' } }, () => {
       payload = getGeneratePayload()({
@@ -449,10 +440,10 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
         commandSchema: commandsSchema.get('config'),
         serviceDir: process.cwd(),
         configuration: { service: 'foo', provider: 'aws' },
-      });
-    });
-    expect(payload.ciName).to.equal('Seed');
-  });
+      })
+    })
+    expect(payload.ciName).to.equal('Seed')
+  })
 
   it('Should correctly resolve `commandOptionNames` property', () => {
     const payload = getGeneratePayload()({
@@ -465,12 +456,12 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
       commandSchema: commandsSchema.get('print'),
       serviceDir: process.cwd(),
       configuration: { service: 'foo', provider: 'aws' },
-    });
+    })
 
     expect(new Set(payload.commandOptionNames)).to.deep.equal(
-      new Set(['region', 'format', 'path'])
-    );
-  });
+      new Set(['region', 'format', 'path']),
+    )
+  })
 
   it('Should correctly resolve `constructs` property', () => {
     const payload = getGeneratePayload()({
@@ -497,7 +488,7 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
         },
         plugins: ['serverless-lift'],
       },
-    });
+    })
     expect(payload.config.constructs).to.deep.equal([
       {
         type: 'queue',
@@ -505,8 +496,8 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
       {
         type: 'queue',
       },
-    ]);
-  });
+    ])
+  })
 
   it('Should correctly resolve `configValidationMode` property', () => {
     const payload = getGeneratePayload()({
@@ -519,14 +510,19 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
         provider: 'aws',
         configValidationMode: 'off',
       },
-    });
-    expect(payload.config.configValidationMode).to.equal('off');
-  });
+    })
+    expect(payload.config.configValidationMode).to.equal('off')
+  })
 
   it('Should correctly resolve `hasLocalCredentials` property for AWS provider', () => {
-    let payload;
+    let payload
     overrideEnv(
-      { variables: { AWS_ACCESS_KEY_ID: 'someaccesskey', AWS_SECRET_ACCESS_KEY: 'secretkey' } },
+      {
+        variables: {
+          AWS_ACCESS_KEY_ID: 'someaccesskey',
+          AWS_SECRET_ACCESS_KEY: 'secretkey',
+        },
+      },
       () => {
         payload = getGeneratePayload()({
           command: 'print',
@@ -534,17 +530,22 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
           commandSchema: commandsSchema.get('print'),
           serviceDir: process.cwd(),
           configuration: { service: 'foo', provider: 'aws' },
-        });
-      }
-    );
+        })
+      },
+    )
 
-    expect(payload.hasLocalCredentials).to.equal(true);
-  });
+    expect(payload.hasLocalCredentials).to.equal(true)
+  })
 
   it('Should correctly resolve `hasLocalCredentials` property for non-AWS provider', () => {
-    let payload;
+    let payload
     overrideEnv(
-      { variables: { AWS_ACCESS_KEY_ID: 'someaccesskey', AWS_SECRET_ACCESS_KEY: 'secretkey' } },
+      {
+        variables: {
+          AWS_ACCESS_KEY_ID: 'someaccesskey',
+          AWS_SECRET_ACCESS_KEY: 'secretkey',
+        },
+      },
       () => {
         payload = getGeneratePayload()({
           command: 'print',
@@ -552,12 +553,12 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
           commandSchema: commandsSchema.get('print'),
           serviceDir: process.cwd(),
           configuration: { service: 'foo', provider: 'other' },
-        });
-      }
-    );
+        })
+      },
+    )
 
-    expect(payload.hasLocalCredentials).to.equal(false);
-  });
+    expect(payload.hasLocalCredentials).to.equal(false)
+  })
 
   it('Should correctly resolve `commandUsage` property', () => {
     const payload = getGeneratePayload()({
@@ -583,7 +584,7 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
           ],
         },
       ],
-    });
+    })
 
     expect(payload.commandUsage).to.deep.equal([
       {
@@ -601,8 +602,8 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
           },
         ],
       },
-    ]);
-  });
+    ])
+  })
 
   it('Should correctly resolve `variableSources` property', () => {
     const payload = getGeneratePayload()({
@@ -613,10 +614,10 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
       configuration: { service: 'foo', provider: 'aws' },
       commandUsage: [],
       variableSources: new Set(['ssm', 'opt']),
-    });
+    })
 
-    expect(payload.config.variableSources).to.deep.equal(['ssm', 'opt']);
-  });
+    expect(payload.config.variableSources).to.deep.equal(['ssm', 'opt'])
+  })
 
   it('Should correctly resolve projectId property', async () => {
     const { serverless } = await runServerless({
@@ -625,8 +626,8 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
       configExt: {
         service: 'to-ensure-unique-serivce-name',
       },
-    });
-    serverless.getProvider('aws').accountId = '1234567890';
+    })
+    serverless.getProvider('aws').accountId = '1234567890'
     const payload = getGeneratePayload()({
       command: 'deploy',
       options: {},
@@ -634,10 +635,12 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
       serviceDir: serverless.serviceDir,
       configuration: serverless.configurationInput,
       serverless,
-    });
+    })
 
-    expect(payload.projectId).to.deep.equal('35dsFwCaexwLHppAP4uDsjKW4ci54q1AKcN5JTNaDtw=');
-  });
+    expect(payload.projectId).to.deep.equal(
+      '35dsFwCaexwLHppAP4uDsjKW4ci54q1AKcN5JTNaDtw=',
+    )
+  })
 
   it('Should correctly resolve `didCreateService` property', async () => {
     const { serverless } = await runServerless({
@@ -646,8 +649,8 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
       configExt: {
         service: 'to-ensure-unique-serivce-name',
       },
-    });
-    serverless.getProvider('aws').didCreateService = true;
+    })
+    serverless.getProvider('aws').didCreateService = true
     const payload = getGeneratePayload()({
       command: '',
       options: {},
@@ -655,10 +658,10 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
       serviceDir: serverless.serviceDir,
       configuration: serverless.configurationInput,
       serverless,
-    });
+    })
 
-    expect(payload.didCreateService).to.be.true;
-  });
+    expect(payload.didCreateService).to.be.true
+  })
 
   it('Should correctly resolve `params` property', () => {
     const payload = getGeneratePayload()({
@@ -684,13 +687,13 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
         },
       },
       commandUsage: [],
-    });
+    })
 
-    expect(payload.config.paramsCount).to.equal(4);
-  });
+    expect(payload.config.paramsCount).to.equal(4)
+  })
 
   it('Should correctly resolve `isUsingCompose` property', async () => {
-    let payload;
+    let payload
     overrideEnv({ variables: { SLS_COMPOSE: '1' } }, () => {
       payload = getGeneratePayload()({
         command: 'print',
@@ -698,8 +701,8 @@ describe('test/unit/lib/utils/telemetry/generate-payload.test.js', () => {
         commandSchema: commandsSchema.get('print'),
         serviceDir: process.cwd(),
         configuration: { service: 'foo', provider: 'aws' },
-      });
-    });
-    expect(payload.isUsingCompose).to.be.true;
-  });
-});
+      })
+    })
+    expect(payload.isUsingCompose).to.be.true
+  })
+})
